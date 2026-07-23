@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.env
+
+# Reasonix internal
+.reasonix/attachments/
+.reasonix/autoresearch/
+.codegraph/
+
+# OS
+Thumbs.db
+.DS_Store
