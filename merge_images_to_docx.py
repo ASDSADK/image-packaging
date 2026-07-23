@@ -8,7 +8,7 @@
     python merge_images_to_docx.py "C:/Users/MyProjects/汇总"
 """
 
-import os
+import re
 import sys
 from pathlib import Path
 
@@ -22,7 +22,7 @@ except ImportError:
     sys.exit(1)
 
 # 支持的图片扩展名（不区分大小写）
-IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.tif', '.webp'}
+IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.tif'}
 
 
 def is_image_file(filename: str) -> bool:
@@ -34,18 +34,19 @@ def is_image_file(filename: str) -> bool:
 def collect_images_from_folder(folder_path: Path) -> list[Path]:
     """收集指定文件夹下（含子文件夹）的所有图片文件"""
     images = []
-    for item in sorted(folder_path.rglob('*')):
-        if item.is_file() and is_image_file(item.name):
-            images.append(item)
+    try:
+        for item in sorted(folder_path.rglob('*')):
+            if item.is_file() and is_image_file(item.name):
+                images.append(item)
+    except PermissionError as e:
+        print(f"      ⚠ 跳过无权限目录: {e}")
     return images
 
 
 def add_image_to_doc(doc: Document, img_path: Path, max_width_inches: float = 5.5):
-    """向 docx 中插入一张图片（纯图片，无文字）"""
-    try:
-        doc.add_picture(str(img_path), width=Inches(max_width_inches))
-    except Exception:
-        pass  # 跳过无法插入的图片
+    """向 docx 中插入一张图片（纯图片，无文字）
+    异常不上抛由调用方处理"""
+    doc.add_picture(str(img_path), width=Inches(max_width_inches))
 
 
 def process_level2_folder(level2_path: Path, level2_name: str):
@@ -61,9 +62,12 @@ def process_level2_folder(level2_path: Path, level2_name: str):
 
     # ---- 1. 找出所有现有的三级文件夹 ----
     existing_third_dirs: list[Path] = []
-    for item in sorted(level2_path.iterdir()):
-        if item.is_dir():
-            existing_third_dirs.append(item)
+    try:
+        for item in sorted(level2_path.iterdir()):
+            if item.is_dir():
+                existing_third_dirs.append(item)
+    except PermissionError as e:
+        print(f"   ⚠ 跳过无权限目录: {e}")
 
     if not existing_third_dirs:
         print(f"   ⚠ 二级文件夹下没有三级文件夹，跳过")
@@ -75,6 +79,8 @@ def process_level2_folder(level2_path: Path, level2_name: str):
 
     # ---- 2. 创建 .docx 文档（与三级文件夹同级） ----
     docx_path = level2_path / f"{level2_name}.docx"
+    if docx_path.exists():
+        print(f"   ⚠ {docx_path.name} 已存在，将被覆盖")
     doc = Document()
 
     # ----- 页面设置（横向，适应图片） -----
@@ -130,11 +136,15 @@ def main():
     print(f"📌 一级文件夹: {root_path}")
     print(f"📌 开始处理...")
 
-    # 遍历一级文件夹下的所有二级文件夹
-    level2_dirs = sorted([
-        item for item in root_path.iterdir()
-        if item.is_dir()
-    ])
+    # 遍历一级文件夹下的所有二级文件夹（自然排序）
+    try:
+        level2_dirs = sorted([
+            item for item in root_path.iterdir()
+            if item.is_dir()
+        ], key=lambda p: _natural_sort_key(p.name))
+    except PermissionError as e:
+        print(f"⚠ 跳过无权限目录: {e}")
+        level2_dirs = []
 
     if not level2_dirs:
         print("⚠ 一级文件夹下没有二级文件夹")
@@ -147,6 +157,12 @@ def main():
 
     print(f"\n{'='*60}")
     print("🎉 全部处理完成！")
+
+
+def _natural_sort_key(name: str):
+    """自然排序：二级_2 排在 二级_10 前面"""
+    parts = re.split(r'(\d+)', name)
+    return [int(p) if p.isdigit() else p.lower() for p in parts]
 
 
 if __name__ == "__main__":
