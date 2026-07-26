@@ -1,0 +1,108 @@
+# Reasonix configuration.
+# Resolution order: flag > ./reasonix.toml > ~/AppData/Roaming/reasonix/config.toml > built-in defaults.
+# Secrets come from the environment via api_key_env; never put keys here.
+
+config_version = 2
+default_model = "deepseek-flash"
+# language      = "zh"   # ui/model language; empty = auto-detect from $LANG / $REASONIX_LANG
+
+[agent]
+cold_resume_prune = true
+
+[[providers]]
+name        = "deepseek-flash"
+kind        = "openai"
+base_url    = "https://api.deepseek.com"
+model       = "deepseek-v4-flash"
+api_key_env = "DEEPSEEK_API_KEY"
+balance_url = "https://api.deepseek.com/user/balance"
+context_window = 1000000
+price       = { cache_hit = 0.02, input = 1, output = 2, currency = "¥" }
+prices      = { "deepseek-v4-flash" = { cache_hit = 0.02, input = 1, output = 2, currency = "¥" } }
+
+[[providers]]
+name        = "deepseek-pro"
+kind        = "openai"
+base_url    = "https://api.deepseek.com"
+model       = "deepseek-v4-pro"
+api_key_env = "DEEPSEEK_API_KEY"
+balance_url = "https://api.deepseek.com/user/balance"
+context_window = 1000000
+price       = { cache_hit = 0.025, input = 3, output = 6, currency = "¥" }
+prices      = { "deepseek-v4-pro" = { cache_hit = 0.025, input = 3, output = 6, currency = "¥" } }
+
+[[providers]]
+name        = "mimo-pro"
+kind        = "openai"
+base_url    = "https://token-plan-cn.xiaomimimo.com/v1"
+models      = ["mimo-v2.5-pro", "mimo-v2.5"]
+default     = "mimo-v2.5-pro"
+api_key_env = "MIMO_API_KEY"
+context_window = 1000000
+price       = { cache_hit = 0.025, input = 3, output = 6, currency = "¥" }
+prices      = { "mimo-v2.5" = { cache_hit = 0.02, input = 1, output = 2, currency = "¥" }, "mimo-v2.5-pro" = { cache_hit = 0.025, input = 3, output = 6, currency = "¥" } }
+vision_models = ["mimo-v2.5"]
+no_proxy    = true
+
+[[providers]]
+name        = "mimo-flash"
+kind        = "openai"
+base_url    = "https://token-plan-cn.xiaomimimo.com/v1"
+models      = ["mimo-v2.5-pro", "mimo-v2.5"]
+default     = "mimo-v2.5"
+api_key_env = "MIMO_API_KEY"
+context_window = 1000000
+price       = { cache_hit = 0.02, input = 1, output = 2, currency = "¥" }
+prices      = { "mimo-v2.5" = { cache_hit = 0.02, input = 1, output = 2, currency = "¥" }, "mimo-v2.5-pro" = { cache_hit = 0.025, input = 3, output = 6, currency = "¥" } }
+vision_models = ["mimo-v2.5"]
+no_proxy    = true
+[tools]
+bash_timeout_seconds = 120
+
+[codegraph]
+enabled      = true   # built-in MCP server; off by default for first-run sessions
+auto_install = true   # fetch the runtime when CodeGraph is enabled but missing
+# path       = ""   # empty = cache, then PATH, then a bundle beside reasonix
+
+[builtin_mcp]
+time_enabled = true   # built-in Time MCP; off until manually enabled
+context7_enabled = false   # built-in Context7 MCP; off until manually enabled
+
+[lsp]
+enabled = true   # language server tools; servers launch lazily when used
+# [lsp.servers.go]
+# command = "gopls"
+# args = []
+# extensions = [".go"]
+
+[skills]
+paths = ["C:\\Users\\33487\\Documents\\GitHub\\taste-skill\\skills"]
+[permissions]
+allow = ["Edit", "Bash(cd news-app && git rm -r --cached unpackage/ 2>/dev/null; git rm -r --cached .hbuilderx/ 2>/dev/null; git add -A && git status --short)", "Bash(# Test Chinese news APIs that actually work\necho \"=== 1. 百度新闻搜索 ===\" && curl -s -o /tmp/baidu.json -w \"HTTP %{http_code}, size: %{size_download}\\n\" \"https://www.baidu.com/s?tn=news&word=%E4%B8%AD%E5%A4%AE%E6%B1%87%E9%87%91\" 2>&1 | tail -1\n\necho \"=== 2. 新浪新闻搜索 ===\" && curl -s -o /tmp/sina.json -w \"HTTP %{http_code}, size: %{size_download}\\n\" \"https://search.sina.com.cn/news?q=%E4%B8%AD%E5%A4%AE%E6%B1%87%E9%87%91&range=all&c=news&sort=time\" 2>&1 | tail -1\n\necho \"=== 3. 聚合数据 ===\" && curl -s -o /tmp/juhe.json -w \"HTTP %{http_code}, size: %{size_download}\\n\" \"http://v.juhe.cn/toutiao/index?type=top&key=test\" 2>&1 | tail -1\n\necho \"=== 4. 网易新闻搜索 ===\" && curl -s -o /tmp/163.json -w \"HTTP %{http_code}, size: %{size_download}\\n\" \"https://c.m.163.com/nc/article/headline/T1348647853363/0-20.html\" 2>&1 | tail -1)", "Bash(# Try Baidu news mobile API\necho \"=== 百度新闻移动端 ===\" && curl -s -L -o /tmp/baidu_news.json -w \"HTTP %{http_code}, size: %{size_download}\\n\" \"https://news.baidu.com/ns?word=%E4%B8%AD%E5%A4%AE%E6%B1%87%E9%87%91&tn=news&from=news&cl=2&rn=20&ct=1\" 2>&1 | tail -1 && head -100 /tmp/baidu_news.json\n\necho \"\"\necho \"=== 搜狗新闻 ===\" && curl -s -L -o /tmp/sogou.json -w \"HTTP %{http_code}, size: %{size_download}\\n\" \"https://news.sogou.com/news?query=%E4%B8%AD%E5%A4%AE%E6%B1%87%E9%87%91\" 2>&1 | tail -1\n\necho \"\"\necho \"=== Bing News ===\" && curl -s -o /tmp/bing.json -w \"HTTP %{http_code}, size: %{size_download}\\n\" \"https://api.bing.com/news/search?q=%E4%B8%AD%E5%A4%AE%E6%B1%87%E9%87%91&mkt=zh-CN&count=20\" -H \"Ocp-Apim-Subscription-Key: test\" 2>&1 | tail -1)", "Bash(# Check Baidu RSS content for news items\necho \"=== 百度RSS - 找新闻条目 ===\" \ngrep -oP '<a[^>]*href=\"[^\"]*\"[^>]*>.*?</a>' /tmp/baidu_rss.xml 2>/dev/null | head -20\n\necho \"\"\necho \"=== 百度RSS - 详细结构 ===\"\ngrep -i 'item\\|title\\|link\\|pubDate\\|description' /tmp/baidu_rss.xml 2>/dev/null | head -20\n\necho \"\"\necho \"=== 百度RSS - class===\"\ngrep -oP 'class=\"[^\"]*\"[^>]*>[^<]+' /tmp/baidu_rss.xml 2>/dev/null | head -20)", "Bash(# Verify the RSS feeds still work and get actual article counts\necho \"人民网时政: $(curl -sL 'http://www.people.com.cn/rss/politics.xml' | grep -c '<item>') 条\"\necho \"新浪要闻: $(curl -sL 'https://rss.sina.com.cn/news/marquee/ddt.xml' | grep -c '<item>') 条\"  \necho \"36氪: $(curl -sL 'https://36kr.com/feed' | grep -c '<item>') 条\"\n\n# Extract sample titles from 人民网\necho \"\"\necho \"=== 人民网示例标题 ===\"\ncurl -sL 'http://www.people.com.cn/rss/politics.xml' | grep -oP '<title>(.*?)</title>' | head -5 | sed 's/<[^>]*>//g'\n\necho \"\"\necho \"=== 新浪示例标题 ===\"\ncurl -sL 'https://rss.sina.com.cn/news/marquee/ddt.xml' | grep -oP '<title><!\\[CDATA\\[(.*?)\\]\\]></title>' | head -5 | sed 's/<[^>]*>//g')", "Bash(dir /s /b /a:d \"%USERPROFILE%\\Documents\\GitHub\\*skill*\" 2>nul)", "Bash(dir /s /b /a:d \"%USERPROFILE%\\Documents\\GitHub\\*reasonix*\" 2>nul)", "Bash(dir /b \"%USERPROFILE%\\Documents\\GitHub\" 2>nul)", "Bash(dir /b \"%USERPROFILE%\\Documents\\GitHub\" 2>nul || echo \"Not Found: Documents\\GitHub\")", "Bash(dir /b \"%USERPROFILE%\\GitHub\" 2>nul || echo \"Not Found: GitHub\")", "Bash(dir /s /b /a:d \"%USERPROFILE%\\*.reasonix\" 2>nul)", "Bash(dir /s /b /a:d \"%USERPROFILE%\\source\\repos\\*skill*\" 2>nul)"]
+
+
+[sandbox]
+# Confine tool blast radius. File-writers (write_file/edit_file/multi_edit/move_file)
+# may only write under workspace_root (empty = current dir) + allow_write.
+# bash = "enforce" (default) jails each command in an OS sandbox (macOS now;
+# graceful fallback elsewhere); "off" disables it. network allows egress.
+# workspace_root = ""            # default: current working directory
+# allow_write = ["/tmp"]          # extra dirs writers may also modify
+bash    = "enforce"
+network = true
+
+[statusline]
+# A custom status line: a command whose first stdout line replaces the built-in
+# data row. It receives {"model","contextUsed","contextWindow","cwd"} as JSON on stdin.
+# command = "my-statusline.sh"
+
+# External MCP servers. type: "stdio" (default, a subprocess) | "http" | "sse".
+# ${VAR} / ${VAR:-default} are expanded from the environment in command/args/env/url/headers.
+# [[plugins]]
+# name    = "example"
+# command = "reasonix-plugin-example"
+# [[plugins]]                                  # a remote server over Streamable HTTP
+# name    = "stripe"
+# type    = "http"
+# url     = "https://mcp.stripe.com"
+# headers = { Authorization = "Bearer ${STRIPE_KEY}" }
